@@ -26,7 +26,7 @@
     "dev": "pnpm --filter docpilot run dev",
     "test": "pnpm -r --filter './packages/*' run test",
     "test:ci": "pnpm -r --filter './packages/*' run test:ci",
-    "typecheck": "pnpm -r --filter './packages/*' run typecheck",
+    "typecheck": "pnpm build && pnpm -r --filter './packages/*' run typecheck",
     "lint": "pnpm run lint:js && pnpm run lint:py && pnpm run lint:md",
     "lint:js": "biome lint .",
     "lint:py": "ruff check .",

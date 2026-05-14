@@ -40,8 +40,11 @@ def main() -> int:
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
 
+    skip_dirs = {"node_modules", "dist", ".git", ".pnpm-store", ".changeset"}
     failures: list[tuple[Path, str]] = []
     for md in root.rglob("*.md"):
+        if any(part in skip_dirs for part in md.parts):
+            continue
         for target in collect_relative_links(md):
             resolved = (md.parent / target).resolve()
             if not resolved.exists():
