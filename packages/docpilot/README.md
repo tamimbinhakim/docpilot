@@ -1,6 +1,6 @@
 # docpilot
 
-> Local-first MCP server that turns any public git repository (GitHub, GitLab, Bitbucket) into fresh, version-pinned documentation for AI coding assistants.
+> Local-first MCP server that turns any public GitHub, GitLab, or Bitbucket repo into fresh, version-pinned documentation for AI coding assistants.
 
 Distributed for `npx docpilot` use in MCP-capable clients (Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Codex CLI).
 

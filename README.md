@@ -48,7 +48,7 @@
 
 ## What it does
 
-You point it at any GitHub repo:
+You point an MCP client at docpilot:
 
 ```bash
 npx -y docpilot
@@ -56,12 +56,12 @@ npx -y docpilot
 
 Drop that into any MCP-capable client (Claude Code, Claude Desktop, Cursor, Windsurf, VS Code, Codex CLI). Then in chat, you say things like _"show me the routing docs from `vercel/next.js@v15.0.0`"_ — and your model calls docpilot, docpilot fetches the actual file from the actual repo at the actual version, returns it as markdown, and your model gets to work with information it can trust.
 
-That's the whole product. Everything below is implementation detail.
+It also resolves fuzzy names — `"drizzle orm"` → `drizzle-team/drizzle-orm` via npm/PyPI/crates/Go/RubyGems/Packagist/Hex — and can search across your whole project's deps in one call (`search_all`).
 
 What you get out of the box:
 
 - **Local-first.** Cache, index, and fetch all run on your machine. No telemetry, no analytics. Your query strings never leave.
-- **Any public GitHub repo.** No registry. No curation. No "library not found" because some hosted service hasn't gotten around to indexing your library yet.
+- **Any public repo on GitHub, GitLab, or Bitbucket.** The forge layer is a plug-in registry, so Codeberg / Gitea / sourcehut are one file away.
 - **Version-pinned by default.** `owner/repo@v15.0.0` is the path of least resistance, not a power-user feature you'll forget about.
 - **Free, forever.** Bring your own GitHub PAT — or none. ETag 304s don't count against your rate limit, so a warm cache is effectively unlimited.
 - **Markdown out, not JSON.** ~75% smaller for the same information. Every response self-reports `~tokens` so the model can budget.

@@ -2,7 +2,7 @@
   "name": "docpilot",
   "private": true,
   "version": "0.0.0",
-  "description": "Local-first MCP server that turns any public GitHub repository into fresh, version-pinned documentation for AI coding assistants.",
+  "description": "Local-first MCP server that turns any public GitHub, GitLab, or Bitbucket repo into fresh, version-pinned documentation for AI coding assistants.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/tamimbinhakim/docpilot#readme",
   "bugs": {
