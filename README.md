@@ -184,16 +184,16 @@ A single string. Optionally compound:
 [forge:]owner/repo[@ref][#subpath]
 ```
 
-| Example                                                   | Meaning                                        |
-| --------------------------------------------------------- | ---------------------------------------------- |
-| `vercel/next.js`                                          | `main` HEAD, repo root (default forge: GitHub) |
-| `vercel/next.js@v15.0.0`                                  | tagged release                                 |
-| `vercel/next.js@canary`                                   | branch                                         |
-| `vercel/next.js@a3b1f7c`                                  | commit sha                                     |
-| `tailwindlabs/tailwindcss@main#packages/tailwindcss/docs` | monorepo docs subtree                          |
-| `python/cpython@3.13#Doc`                                 | only the `Doc/` tree                           |
-| `gitlab:gitlab-org/gitlab@master`                         | GitLab repo (alias: `gl:`)                     |
-| `bitbucket:atlassian/python-bitbucket`                    | Bitbucket Cloud repo (alias: `bb:`)            |
+```ts
+vercel/next.js                                          // main HEAD, repo root (default forge: GitHub)
+vercel/next.js@v15.0.0                                  // tagged release
+vercel/next.js@canary                                   // branch
+vercel/next.js@a3b1f7c                                  // commit sha (short or full)
+tailwindlabs/tailwindcss@main#packages/tailwindcss/docs // monorepo docs subtree
+python/cpython@3.13#Doc                                 // only the Doc/ tree
+gitlab:gitlab-org/gitlab@master                         // GitLab (alias: gl:)
+bitbucket:atlassian/python-bitbucket                    // Bitbucket Cloud (alias: bb:)
+```
 
 See [`docs/reference/repo-spec.md`](docs/reference/repo-spec.md) for the full grammar.
 
@@ -201,20 +201,24 @@ See [`docs/reference/repo-spec.md`](docs/reference/repo-spec.md) for the full gr
 
 ## Tools
 
-| Tool            | Purpose                                                                                                                                                                           |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolve_repo`  | Turn `"drizzle orm"` into `drizzle-team/drizzle-orm` via npm/PyPI/crates first, GitHub last. Suggests `npm install …` when the dep is missing from your lockfile.                 |
-| `list_docs`     | Markdown tree of docs files, with size hints, freshness badges, llms.txt highlights. Optional `since: "2025-04-01"` filter for "what changed since the model's training cutoff?". |
-| `fetch_doc`     | One file with frontmatter metadata + one-paragraph summary. Supports `lines` / `head_bytes` for partial reads.                                                                    |
-| `search_docs`   | BM25+ search across the snapshot (per-repo MiniSearch index, cached by commit sha).                                                                                               |
-| `search_all`    | Fan-out search across many repos at once. Pass `repos: [...]` or `from_lockfile: true`.                                                                                           |
-| `peek`          | First N lines of a file before committing to a full fetch.                                                                                                                        |
-| `get_changes`   | Unified diff for one file across two refs.                                                                                                                                        |
-| `changelog`     | Slice CHANGELOG.md / HISTORY.md between two refs.                                                                                                                                 |
-| `related_repos` | Scrape README + llms.txt for github.com peer links — "often used with…".                                                                                                          |
-| `get_issues`    | Search a repo's issues and PRs for a query (separate /search/issues bucket, 30/min).                                                                                              |
-| `doc_quality`   | Scorecard: llms.txt presence, README, framework nav (Docusaurus / Mintlify / VitePress / Nextra / Fern), last-touch age.                                                          |
-| `cache_status`  | Diagnostic: cache hits, sizes, snapshot sha, last revalidate.                                                                                                                     |
+```ts
+resolve_repo  // "drizzle orm" → drizzle-team/drizzle-orm via npm/PyPI/crates first, GitHub last.
+              // Suggests `npm install …` when the dep is missing from your lockfile.
+list_docs     // Markdown tree of docs files, with size hints, freshness badges, llms.txt highlights.
+              // Optional `since: "2025-04-01"` filter for "what changed since the model's cutoff?".
+fetch_doc     // One file with frontmatter metadata + one-paragraph summary. Supports `lines` /
+              // `head_bytes` for partial reads.
+search_docs   // BM25+ search across the snapshot (per-repo MiniSearch index, cached by commit sha).
+search_all    // Fan-out search across many repos at once. Pass `repos: [...]` or `from_lockfile: true`.
+peek          // First N lines of a file before committing to a full fetch.
+get_changes   // Unified diff for one file across two refs.
+changelog     // Slice CHANGELOG.md / HISTORY.md between two refs.
+related_repos // Scrape README + llms.txt for github.com peer links — "often used with…".
+get_issues    // Search a repo's issues and PRs for a query (separate /search/issues, 30/min).
+doc_quality   // Scorecard: llms.txt, README, framework nav (Docusaurus / Mintlify / VitePress /
+              // Nextra / Fern), last-touch age.
+cache_status  // Diagnostic: cache hits, sizes, snapshot sha, last revalidate.
+```
 
 Full reference: [`docs/reference/tools.md`](docs/reference/tools.md).
 
