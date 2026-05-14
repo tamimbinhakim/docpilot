@@ -1,5 +1,5 @@
 {
-  "name": "docpilot-monorepo",
+  "name": "docpilot",
   "private": true,
   "version": "0.0.0",
   "description": "Local-first MCP server that turns any public GitHub repository into fresh, version-pinned documentation for AI coding assistants.",
