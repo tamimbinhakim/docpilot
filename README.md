@@ -65,7 +65,7 @@ What you get out of the box:
 - **Version-pinned by default.** `owner/repo@v15.0.0` is the path of least resistance, not a power-user feature you'll forget about.
 - **Free, forever.** Bring your own GitHub PAT — or none. ETag 304s don't count against your rate limit, so a warm cache is effectively unlimited.
 - **Markdown out, not JSON.** ~75% smaller for the same information. Every response self-reports `~tokens` so the model can budget.
-- **No third-party instruction channel.** No registry can author content delivered through docpilot. The [ContextCrush class of bug](https://noma.security/) cannot exist here, structurally.
+- **No third-party instruction channel.** The [ContextCrush class of bug](https://noma.security/) (Custom Rules served verbatim from a third-party registry, Feb 2026) is structurally absent. docpilot serves file contents only — see [Threat model](#threat-model) for what that does and doesn't buy you.
 
 <br />
 
@@ -73,21 +73,21 @@ What you get out of the box:
 
 Context7 is the elephant in the room and the reason I felt the need to write this section at all. It's the default people reach for, it's well-marketed, and it solved a real problem — for a while. But the parts that broke for me aren't bugs. They're properties of the architecture. (The personal version of how I hit each of these is in [The story](#the-story) below.)
 
-|                                        | Context7                                                                                                                                                                                                                                                      | docpilot                                                                                                                                                                     |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prompt-injection surface**           | Custom Rules served verbatim from the registry into the agent's trusted channel — see the [ContextCrush disclosure (Noma Security, Feb 2026)](https://noma.security/). The patch fixed the bug; the registry-as-instruction-channel **architecture remains**. | None. docpilot returns only file contents from `github.com/{owner}/{repo}` that you explicitly named. Period.                                                                |
-| **Trust boundary**                     | Upstash registry + third-party-authored Custom Rules.                                                                                                                                                                                                         | Your GitHub PAT. The public CDN. That's it.                                                                                                                                  |
-| **Privacy**                            | Every query is sent to `context7.com`. Your phrasing is a third-party signal.                                                                                                                                                                                 | Your queries never leave your machine. Outbound calls go only to GitHub, jsDelivr, and the public package registries — and the registries only when you call `resolve_repo`. |
-| **Free-tier capacity**                 | Cut **83–92% in Jan 2026**. Many users hit caps within an afternoon of work.                                                                                                                                                                                  | Free, forever. Your rate limit is your own GitHub PAT (5,000/hr) — and authenticated `If-None-Match` 304s don't count, so a warm cache is effectively unlimited.             |
-| **Library coverage**                   | Curated registry. If it's not in Context7, you're out of luck.                                                                                                                                                                                                | Any public GitHub repo. If `owner/repo` exists on GitHub, docpilot can serve it — including the libraries _you_ just shipped.                                                |
-| **Wrong-library hallucination**        | `resolve-library-id` will silently route an unknown name to a "similar" library based on opaque trust scores. Multiple "library not found" and silent-mismatch reports on r/cursor and HN.                                                                    | `resolve_repo` is transparent: npm/PyPI/crates first, GitHub stars last. Returns the candidate list when ambiguous and lets you (or the model) pick.                         |
-| **Version pinning UX**                 | Possible (`/owner/lib/vX.Y.Z`) but most users don't bother.                                                                                                                                                                                                   | First-class. `owner/repo@ref` _is_ the canonical input format.                                                                                                               |
-| **Freshness**                          | Periodic re-index. Per their own guide: _"very recent releases — within days — may not be available yet."_                                                                                                                                                    | Your cache. ETag-revalidate-on-read means at most one round-trip stale. Pin `@main` for HEAD; pin `@v1.2.3` for reproducibility.                                             |
-| **Token bloat**                        | Returns large JSON-flavored payloads. r/cursor users complain it eats the context window.                                                                                                                                                                     | Markdown trees and frontmatter, ~75% smaller than equivalent JSON. Every response includes `~tokens: N` so the model can budget.                                             |
-| **"Use context7" magic trigger**       | Required for the model to reach for it; otherwise it doesn't fire.                                                                                                                                                                                            | Tool descriptions are written so the model **defaults** to docpilot when you mention a library. No incantation.                                                              |
-| **Account / API key for higher quota** | Yes. Privacy-conscious users opt out.                                                                                                                                                                                                                         | None. There is no account. There is nothing to log into.                                                                                                                     |
-| **Monorepos**                          | Limited. `/vercel/next.js` returns "Next.js docs," not arbitrary `packages/*/docs/`.                                                                                                                                                                          | First-class `#subpath`: `vercel/next.js@canary#packages/next/src/lib`.                                                                                                       |
-| **Your own libraries during dev**      | Has to be ingested first. New releases lag.                                                                                                                                                                                                                   | Works the second you push to GitHub. Pin `@<sha>` and your model is reading the diff you just shipped.                                                                       |
+|                                        | Context7                                                                                                                                                                                                                                                      | docpilot                                                                                                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Prompt-injection surface**           | Custom Rules served verbatim from the registry into the agent's trusted channel — see the [ContextCrush disclosure (Noma Security, Feb 2026)](https://noma.security/). The patch fixed the bug; the registry-as-instruction-channel **architecture remains**. | No third-party authoring layer — that whole class of injection is structurally absent. The content-layer class (a malicious README) still applies; see [Threat model](#threat-model). |
+| **Trust boundary**                     | Upstash registry + third-party-authored Custom Rules.                                                                                                                                                                                                         | Your GitHub PAT. The public CDN. That's it.                                                                                                                                           |
+| **Privacy**                            | Every query is sent to `context7.com`. Your phrasing is a third-party signal.                                                                                                                                                                                 | Your queries never leave your machine. Outbound calls go only to GitHub, jsDelivr, and the public package registries — and the registries only when you call `resolve_repo`.          |
+| **Free-tier capacity**                 | Cut **83–92% in Jan 2026**. Many users hit caps within an afternoon of work.                                                                                                                                                                                  | Free, forever. Your rate limit is your own GitHub PAT (5,000/hr) — and authenticated `If-None-Match` 304s don't count, so a warm cache is effectively unlimited.                      |
+| **Library coverage**                   | Curated registry. If it's not in Context7, you're out of luck.                                                                                                                                                                                                | Any public GitHub repo. If `owner/repo` exists on GitHub, docpilot can serve it — including the libraries _you_ just shipped.                                                         |
+| **Wrong-library hallucination**        | `resolve-library-id` will silently route an unknown name to a "similar" library based on opaque trust scores. Multiple "library not found" and silent-mismatch reports on r/cursor and HN.                                                                    | `resolve_repo` is transparent: npm/PyPI/crates first, GitHub stars last. Returns the candidate list when ambiguous and lets you (or the model) pick.                                  |
+| **Version pinning UX**                 | Possible (`/owner/lib/vX.Y.Z`) but most users don't bother.                                                                                                                                                                                                   | First-class. `owner/repo@ref` _is_ the canonical input format.                                                                                                                        |
+| **Freshness**                          | Periodic re-index. Per their own guide: _"very recent releases — within days — may not be available yet."_                                                                                                                                                    | Your cache. ETag-revalidate-on-read means at most one round-trip stale. Pin `@main` for HEAD; pin `@v1.2.3` for reproducibility.                                                      |
+| **Token bloat**                        | Returns large JSON-flavored payloads. r/cursor users complain it eats the context window.                                                                                                                                                                     | Markdown trees and frontmatter, ~75% smaller than equivalent JSON. Every response includes `~tokens: N` so the model can budget.                                                      |
+| **"Use context7" magic trigger**       | Required for the model to reach for it; otherwise it doesn't fire.                                                                                                                                                                                            | Tool descriptions are written so the model **defaults** to docpilot when you mention a library. No incantation.                                                                       |
+| **Account / API key for higher quota** | Yes. Privacy-conscious users opt out.                                                                                                                                                                                                                         | None. There is no account. There is nothing to log into.                                                                                                                              |
+| **Monorepos**                          | Limited. `/vercel/next.js` returns "Next.js docs," not arbitrary `packages/*/docs/`.                                                                                                                                                                          | First-class `#subpath`: `vercel/next.js@canary#packages/next/src/lib`.                                                                                                                |
+| **Your own libraries during dev**      | Has to be ingested first. New releases lag.                                                                                                                                                                                                                   | Works the second you push to GitHub. Pin `@<sha>` and your model is reading the diff you just shipped.                                                                                |
 
 Context7's strengths — curation, hosted indexing, smart ranking — are precisely the surface area where it fails in ways docpilot **structurally cannot**. That's the whole pitch.
 
@@ -306,6 +306,51 @@ No telemetry. No analytics. Your query strings never leave your machine except a
 
 <br />
 
+## Threat model
+
+Being honest about what's solved and what isn't:
+
+**What's structurally absent**
+
+- _No third-party authoring channel._ Context7's ContextCrush class — Custom Rules served from a registry into the agent's trusted channel ([Noma Security, Feb 2026](https://noma.security/)) — cannot exist in docpilot because there is no registry layer. There is nowhere for a "library owner" (other than the actual repo maintainer) to author content delivered to your agent.
+- _No hosted query log._ Your phrasing never goes to a third party. The only outbound calls are the ones listed above, and only when you make them.
+- _No "trust score" you can't see._ Resolution is a transparent race across package registries — npm/PyPI/crates/etc — with GitHub stars as the last resort. The candidates list is returned to the model when ambiguous; no opaque ranking decides on your behalf.
+
+**What docpilot does _not_ solve**
+
+- _Content-layer prompt injection._ If a library's `README.md`, `llms.txt`, or other docs file contains an instruction-shaped payload (`"ignore previous instructions and …"`), `fetch_doc` will return it verbatim and your model will see it. This is true of any tool that retrieves third-party docs, including Context7, GitMCP, and `curl | pbcopy`. Mitigations: pin to a commit sha you've reviewed, prefer release tags over `@main` for production prompts, and don't auto-execute model output without review.
+- _Repository takeover._ If a maintainer's GitHub credentials are compromised and a malicious commit lands on the branch you've pinned to, docpilot will faithfully serve the malicious doc. Pin to a sha you trust, or use a CDN-only mode against a sha you've audited.
+- _CDN compromise._ jsDelivr is a donation-funded CDN; we use it because commit-pinned URLs are permanently cached and free against your GitHub bucket. If it ever served tampered bytes, docpilot would faithfully deliver them. Multi-CDN failover (`statically.io`, `raw.githack.com`) is documented but not in v1; in the meantime, run with `--no-cdn` if you need REST-only fetches.
+- _Recipe supply chain._ A `.docpilot.recipe.toml` you install can pre-warm any repo it lists. We treat recipes as user-trusted input — same posture as a `package.json` dependency. Read what you install.
+
+If you find a real vulnerability, see [`SECURITY.md`](SECURITY.md).
+
+<br />
+
+## When not to use docpilot
+
+docpilot is built for **documentation** retrieval, not source-code understanding. Reach for a different tool when:
+
+- You need symbol-level navigation across a repo (where is `useState` defined?) — use [`github-mcp-server`](https://github.com/github/github-mcp-server) (official) or [`deepwiki`](https://github.com/AsyncFuncAI/deepwiki-open).
+- You want to write to the repo (open issues, create PRs, commit) — docpilot is read-only by design. Use the official GitHub MCP server.
+- You want curated, ranked snippets across many libraries from a single hosted index — that's Context7's strength when its tradeoffs are acceptable to you.
+- You're running in an environment where outbound HTTPS is blocked. docpilot needs to reach `api.github.com` (or `cdn.jsdelivr.net`) at least once per repo to fetch anything new. A warm cache works fully offline.
+
+<br />
+
+## Honest tradeoffs
+
+A few decisions worth calling out before you build on top:
+
+- _Unauthenticated `raw.githubusercontent.com` was rate-limited on May 8, 2025_ ([GitHub changelog](https://github.blog/changelog/2025-05-08-updated-rate-limits-for-unauthenticated-requests/)) with no documented way to authenticate. That's _why_ docpilot defaults to the jsDelivr CDN for raw reads, even when a PAT is present.
+- _Authenticated 304 responses are free_ against GitHub's primary rate limit ([docs.github.com](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)). docpilot's `If-None-Match` flow is built around this — a warm cache effectively doesn't count against your 5,000/hr.
+- _GraphQL has no ETag._ For repeated fetches of the same files, REST + ETag is cheaper. docpilot only escalates to GraphQL on cold fetches of ≥ 4 files at once.
+- _MiniSearch is in-memory._ A repo with >10 MB of docs text indexes in ~200–500 ms on first call. Sub-second is fine for `search_docs` but you'll feel the cold start. Persisted JSON makes warm starts fast.
+- _MCP `outputSchema` support is uneven across clients._ As of May 2026 the TypeScript SDK, Claude Code, and Cursor validate it correctly; some clients pass `structuredContent` to the model verbatim (SEP-1624 is still draft). docpilot returns both `content` and `structuredContent` where useful; the markdown `content` is the source of truth.
+- _`llms.txt` is a proposal, not a standard._ Jeremy Howard published it in Sept 2024 and adoption is broad (Mintlify / Fern / Docusaurus / GitBook) but it's not an RFC. docpilot boosts hits inside `llms.txt` when present; it never _requires_ it.
+
+<br />
+
 ## Documentation
 
 |                                                   |                                             |
@@ -350,8 +395,8 @@ pnpm dev          # runs docpilot from source
 
 Conventions and CI gates live in [`CONTRIBUTING.md`](CONTRIBUTING.md). The repo uses:
 
-- **TypeScript** for runtime code (Node ≥20)
-- **oxlint** + **oxfmt** for JS / TS lint and format
+- **TypeScript** (Node ≥ 20, `strict` + `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`)
+- **[Biome](https://biomejs.dev/)** for JS / TS lint and format (`pnpm check`)
 - **prettier** for markdown only
 - **ruff** for Python (`scripts/`)
 - **commitlint** with [Conventional Commits](https://www.conventionalcommits.org/)
