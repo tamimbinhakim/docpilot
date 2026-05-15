@@ -1,85 +1,96 @@
 # ctxpeek
 
-**(Pronounced Context Peek)**
+**Pronounced Context Peek.**
 
-> Local-first MCP server that turns any public GitHub, GitLab, or Bitbucket repo into fresh, version-pinned documentation for AI coding assistants.
+Local-first MCP server for fresh, version-pinned repo docs. ctxpeek lets AI coding assistants read documentation straight from public GitHub, GitLab, or Bitbucket repos at the branch, tag, commit, or monorepo subpath you ask for.
 
-Distributed for `npx ctxpeek` use in MCP-capable clients (Claude Code, Cursor, Windsurf, VS Code, Codex CLI, Claude Desktop).
+```bash
+npx -y ctxpeek
+```
 
-For installation, configuration, tool reference, and troubleshooting see the top-level [README](../../README.md) and [docs/](../../docs/).
+## Quick Start
 
-## Quick start
+Claude Code:
 
 ```bash
 claude mcp add --transport stdio --scope user ctxpeek -- npx -y ctxpeek
+claude mcp list
 ```
 
-For Cursor, VS Code, Windsurf, Codex CLI, Claude Desktop, and generic JSON setup, see the top-level [README](../../README.md#quick-start).
+Generic stdio MCP config:
 
-## Layout
-
-```ts
-src/
-├── server.ts                          // MCP entrypoint + CLI dispatch
-├── config.ts                          // .ctxpeek.toml + env discovery
-├── doctor.ts                          // Environment self-check
-├── recipes.ts                         // Pre-warm bundles
-├── lockfile.ts                        // Manifest detection (façade)
-├── tools/                             // MCP tool implementations
-│   ├── resolveRepo.ts
-│   ├── listDocs.ts
-│   ├── fetchDoc.ts
-│   ├── peek.ts
-│   ├── getChanges.ts
-│   ├── changelog.ts
-│   ├── relatedRepos.ts
-│   ├── getIssues.ts
-│   ├── cacheStatus.ts
-│   └── context.ts                     // Shared tool context + Snapshot resolver
-├── fetch/                             // Cache → CDN → REST/ETag strategy
-│   ├── strategy.ts
-│   ├── githubRest.ts
-│   ├── githubGraphql.ts
-│   ├── jsdelivr.ts
-│   ├── ratelimit.ts
-│   ├── defineForge.ts
-│   ├── forgeClient.ts
-│   └── forges/                        // One file per forge plug-in
-│       ├── github.ts
-│       ├── gitlab.ts
-│       └── bitbucket.ts
-├── resolve/                           // Fuzzy-name → owner/repo
-│   ├── orchestrator.ts
-│   ├── githubSearch.ts
-│   ├── extractGithub.ts
-│   ├── defineRegistry.ts
-│   ├── definePackageManifest.ts
-│   ├── packageManifest.ts
-│   ├── resolutionCache.ts
-│   ├── registries/                    // One file per registry plug-in
-│   │   ├── npm.ts, pypi.ts, crates.ts, go.ts
-│   │   └── rubygems.ts, packagist.ts, hex.ts
-│   └── packageManifests/              // One file per manifest verifier
-├── lockfile/                          // Direct-dep extraction
-│   ├── defineLockfileParser.ts
-│   └── parsers/                       // One file per language plug-in
-│       └── (same layout as above)
-├── cache/                             // Content-addressed disk cache
-│   └── blobs.ts, refs.ts, etag.ts, gc.ts, repoMeta.ts
-├── format/                            // Markdown renderers
-│   └── tree.ts, frontmatter.ts, docsPaths.ts
-└── util/                              // HTTP, paths, sha, logger, promise helpers
+```jsonc
+{
+  "mcpServers": {
+    "ctxpeek": {
+      "command": "npx",
+      "args": ["-y", "ctxpeek"]
+    }
+  }
+}
 ```
+
+Then ask your assistant for docs by repo:
+
+```text
+Show me the routing docs from vercel/next.js@v15.0.0
+```
+
+ctxpeek also resolves fuzzy package names, so the model can turn `"drizzle orm"` into `drizzle-team/drizzle-orm` before listing the docs tree.
+
+## Why ctxpeek
+
+- Local stdio MCP process; no ctxpeek account or SaaS query log.
+- Ref-native input: `owner/repo@ref#subpath`.
+- Works with public GitHub, GitLab, and Bitbucket repos.
+- Reads the requested git snapshot directly, without waiting for docs ingestion.
+- Uses an on-disk cache and CDN/ETag fallbacks to reduce repeat network cost.
+- Returns markdown, not large JSON envelopes.
+- No third-party instruction channel between the upstream repo and your agent.
+
+## Context7 vs ctxpeek
+
+The core difference is the AI agent flow.
+
+```text
+Context7:
+  resolve a library ID
+  ask the hosted corpus for docs about a topic
+  receive selected context
+  answer from that curated bundle
+
+ctxpeek:
+  resolve or accept owner/repo@ref
+  list the docs tree at that git snapshot
+  choose the exact path to inspect
+  fetch, peek, compare refs, and repeat as needed
+```
+
+Context7 is strongest when you want curated topic snippets from a hosted corpus. ctxpeek is strongest when the question depends on the exact branch, tag, commit, or monorepo package the docs came from.
+
+## Tool Flow
+
+The natural agent loop is:
+
+```text
+resolve_repo -> list_docs -> fetch_doc
+```
+
+Additional tools support cheap file previews (`peek`), diffs between refs (`get_changes`), changelog slices, related repos, cache status, rate limits, and issue/PR lookup.
+
+## Docs
+
+- Main README: <https://github.com/tamimbinhakim/ctxpeek#readme>
+- Getting started: <https://github.com/tamimbinhakim/ctxpeek/blob/main/docs/guides/getting-started.md>
+- Tool reference: <https://github.com/tamimbinhakim/ctxpeek/blob/main/docs/reference/tools.md>
+- Configuration: <https://github.com/tamimbinhakim/ctxpeek/blob/main/docs/reference/configuration.md>
+- Comparison: <https://github.com/tamimbinhakim/ctxpeek/blob/main/docs/comparison.md>
 
 ## Development
 
 ```bash
 pnpm install
-pnpm --filter ctxpeek dev                 # tsx watch from source
-pnpm --filter ctxpeek test                # unit tests
-pnpm --filter ctxpeek test:integration    # MCP boot + tool/list round-trip
+pnpm --filter ctxpeek dev
+pnpm --filter ctxpeek test
+pnpm --filter ctxpeek test:integration
 ```
-
-## Extending
-
-See [`docs/guides/extending.md`](../../docs/guides/extending.md) for adding a forge, lockfile parser, or registry probe. Each is one file.

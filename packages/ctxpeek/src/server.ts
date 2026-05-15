@@ -2,6 +2,7 @@
 // ctxpeek — single bin entrypoint. With no args, runs the MCP stdio server.
 // Subcommands: `doctor`, `warm`, `recipe install`, `cache status|gc`. See USAGE.
 import { realpathSync } from "node:fs";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -53,7 +54,10 @@ import {
 } from "./tools/index.js";
 import { toolErrorResult } from "./tools/toolError.js";
 
-export const CTXPEEK_VERSION = "0.1.0";
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version?: unknown };
+
+export const CTXPEEK_VERSION = typeof packageJson.version === "string" ? packageJson.version : "0.0.0";
 
 const USAGE = `ctxpeek ${CTXPEEK_VERSION} — local-first MCP server for repo-hosted docs
 

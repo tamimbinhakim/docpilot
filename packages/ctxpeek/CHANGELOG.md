@@ -1,5 +1,11 @@
 # ctxpeek
 
+## 0.1.2
+
+### Patch Changes
+
+- Fix release hygiene for the MCP package: report the runtime version from package metadata, make the MCP boot integration test wait for server readiness, ship the full Apache license in the npm tarball, and expand the npm README with the Context7 vs ctxpeek agent-flow explanation.
+
 ## 0.1.1
 
 ### Patch Changes

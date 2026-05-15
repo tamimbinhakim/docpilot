@@ -27,6 +27,7 @@ describe("MCP boot", () => {
     });
 
     let buffer = "";
+    let stderr = "";
     const waitForResponse = (id: number, timeoutMs: number): Promise<JsonRpcResponse> =>
       new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -61,11 +62,30 @@ describe("MCP boot", () => {
         child.stdout.on("data", onData);
       });
 
+    const waitForReady = (timeoutMs: number): Promise<void> =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(
+            new Error(`timed out after ${timeoutMs}ms waiting for server ready; stderr so far:\n${stderr}`),
+          );
+        }, timeoutMs);
+        const onData = (chunk: Buffer): void => {
+          stderr += chunk.toString();
+          if (stderr.includes("MCP stdio server ready")) {
+            clearTimeout(timer);
+            child.stderr.off("data", onData);
+            resolve();
+          }
+        };
+        child.stderr.on("data", onData);
+      });
+
     const send = (msg: Record<string, unknown>): void => {
       child.stdin.write(`${JSON.stringify(msg)}\n`);
     };
 
     try {
+      await waitForReady(10_000);
       send({
         jsonrpc: "2.0",
         id: 1,
